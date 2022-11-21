@@ -35,7 +35,6 @@ const LogsWrapper = () => {
         startIndex: 0,
         endIndex: 0
     });
-    const [logType, setLogType] = useState('');
     const [logs, setLogs] = useState(() => []);
     const [seqNum, setSeqNum] = useState(-1);
     const [stopLoad, setStopLoad] = useState(false);
@@ -47,7 +46,7 @@ const LogsWrapper = () => {
 
     const getLogs = async () => {
         try {
-            const data = await httpRequest('GET', `${ApiEndpoints.GET_SYS_LOGS}?log_type=${logType || 'all'}&start_index=${stateRef.current[0]}`);
+            const data = await httpRequest('GET', `${ApiEndpoints.GET_SYS_LOGS}?log_type=${state.filterLogs}&start_index=${stateRef.current[0]}`);
             if (data.logs) {
                 if (stateRef.current[0] === -1) {
                     setLastMgsSeq(data.logs[0].message_seq);
@@ -72,9 +71,17 @@ const LogsWrapper = () => {
     }, []);
 
     useEffect(() => {
+        dispatch({ type: 'SET_DOMAIN_LIST', payload: [] });
         const timeout = loadMore();
         return () => clearTimeout(timeout);
     }, []);
+
+    useEffect(() => {
+        setSeqNum(-1);
+        stopListen();
+        setLogs([]);
+        startListen();
+    }, [state.filterLogs]);
 
     useEffect(() => {
         if (stateRef.current[2]) {
@@ -89,7 +96,7 @@ const LogsWrapper = () => {
 
     const startListen = () => {
         setTimeout(() => {
-            switch (logType) {
+            switch (state.filterLogs) {
                 case 'err':
                     state.socket?.emit('register_syslogs_data_err');
                     break;

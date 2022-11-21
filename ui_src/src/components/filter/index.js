@@ -53,8 +53,9 @@ const Filter = ({ filterComponent, height }) => {
     const history = useHistory();
 
     useEffect(() => {
+        dispatch({ type: 'SET_FILTER_LOG', payload: '' });
         buildFilter();
-    }, [state?.domainList]);
+    }, [state?.route]);
 
     const handleRegisterToStation = useCallback(() => {
         state.socket?.emit('get_all_stations_data');
@@ -91,6 +92,9 @@ const Filter = ({ filterComponent, height }) => {
                     getFilterData(state?.domainList);
                 }
                 return;
+            case 'logs':
+                buildLogsFilter();
+                return;
             default:
                 return;
         }
@@ -111,6 +115,21 @@ const Filter = ({ filterComponent, height }) => {
     const getFilterData = (stations) => {
         filterFields.findIndex((x) => x.name === 'created') === -1 && getCreatedByFilter(stations);
         filterFields.findIndex((x) => x.name === 'storage') === -1 && getStorageTypeFilter();
+    };
+
+    const buildLogsFilter = () => {
+        const logTypeFilter = {
+            name: 'type',
+            value: 'Type',
+            filterType: filterType.RADIOBUTTON,
+            radioValue: -1,
+            fields: [
+                { name: 'Info', value: 'info' },
+                { name: 'Warn', value: 'warn' },
+                { name: 'Error', value: 'error' }
+            ]
+        };
+        setFilterFields([logTypeFilter]);
     };
 
     const getCreatedByFilter = (stations) => {
@@ -218,6 +237,9 @@ const Filter = ({ filterComponent, height }) => {
                 }
                 dispatch({ type: 'SET_FILTERED_LIST', payload: data });
                 return;
+            case 'logs':
+                console.log(filterTerms);
+                dispatch({ type: 'SET_FILTER_LOG', payload: filterTerms.length > 0 ? filterTerms[0].fields[0].toLowerCase() : '' });
             default:
                 return;
         }
@@ -261,6 +283,7 @@ const Filter = ({ filterComponent, height }) => {
 
     const handleClear = () => {
         filterDispatch({ type: 'SET_COUNTER', payload: 0 });
+        dispatch({ type: 'SET_FILTER_LOG', payload: '' });
         let filter = filterFields;
         filter.map((filterGroup) => {
             switch (filterGroup.filterType) {
@@ -272,7 +295,7 @@ const Filter = ({ filterComponent, height }) => {
                     filterGroup.radioValue = -1;
             }
         });
-        filterDispatch({ type: 'SET_FILTER_FIELDS', payload: filter });
+        filterDispatch({ type: 'SET_FILTER_FIELDS', payload: [] });
         setFilterTerms([]);
     };
 
@@ -286,19 +309,21 @@ const Filter = ({ filterComponent, height }) => {
 
     return (
         <FilterStoreContext.Provider value={[filterState, filterDispatch]}>
-            <SearchInput
-                placeholder="Search stations"
-                colorType="navy"
-                backgroundColorType="gray-dark"
-                width="288px"
-                height="34px"
-                borderColorType="none"
-                boxShadowsType="none"
-                borderRadiusType="circle"
-                iconComponent={<img src={searchIcon} alt="searchIcon" />}
-                onChange={handleSearch}
-                value={searchInput}
-            />
+            {filterComponent !== 'logs' && (
+                <SearchInput
+                    placeholder="Search stations"
+                    colorType="navy"
+                    backgroundColorType="gray-dark"
+                    width="288px"
+                    height="34px"
+                    borderColorType="none"
+                    boxShadowsType="none"
+                    borderRadiusType="circle"
+                    iconComponent={<img src={searchIcon} alt="searchIcon" />}
+                    onChange={handleSearch}
+                    value={searchInput}
+                />
+            )}
             <Popover className="filter-menu" placement="bottomLeft" content={content} trigger="click" onOpenChange={handleOpenChange} open={filterState.isOpen}>
                 <Button
                     className="modal-btn"
